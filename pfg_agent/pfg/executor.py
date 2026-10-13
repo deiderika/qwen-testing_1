@@ -116,6 +116,7 @@ class Executor:
         self.safety = safety
         self.audit = JsonlLogger(config.log_dir)
         self.skill_registry: Any = None  # подставляется агентом (SkillsManager)
+        self.web_search: Any = None      # подставляется агентом (WebSearchEngine)
 
     # ---------- публичный API ----------
     def execute(self, actions: list[Action]) -> list[ActionResult]:
@@ -169,6 +170,19 @@ class Executor:
 
     def _do_search_memory(self, action: Action) -> ActionResult:
         return self._do_recall(action)
+
+    def _do_web_search(self, action: Action) -> ActionResult:
+        """Мультиисточниковый поиск. Движок подставляется агентом (executor.web_search)."""
+        query = str(action.args.get("query", "") or action.args.get("text", ""))
+        if not query:
+            return ActionResult("web_search", False, error="пустой поисковый запрос")
+        engine = getattr(self, "web_search", None)
+        if engine is None:
+            return ActionResult("web_search", False, error="веб-поиск не подключён (нет fetch-контура)")
+        rep = engine.search_logged(query)
+        return ActionResult("web_search", rep.success,
+                            output=rep.to_dict(),
+                            error="; ".join(rep.errors) if rep.errors and not rep.success else None)
 
     def _do_write_file(self, action: Action) -> ActionResult:
         path = _sandbox_path(self.config, str(action.args.get("path", "")))

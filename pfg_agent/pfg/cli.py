@@ -241,6 +241,49 @@ def cmd_web(args: argparse.Namespace) -> int:
     return run_web(config_path, host=args.host, port=args.port)
 
 
+def cmd_search(args: argparse.Namespace) -> int:
+    """Мультиисточниковый поиск в интернете (белый список + карантин + corroboration)."""
+    agent = _agent(args)
+    try:
+        if agent.web_search is None:
+            _print_json({"ok": False,
+                         "error": "интернет-контур выключен: включите network.enabled и allowed_domains "
+                                  "в конфиге (по умолчанию запрещено осознанно)"})
+            return 1
+        rep = agent.web_search.search_logged(args.query)
+        agent.save()
+        _print_json(rep.to_dict())
+        print(f"\n>>> {rep.answer or 'ответ не найден'}  (уверенность {rep.confidence:.2f})")
+        return 0 if rep.success else 1
+    finally:
+        agent.close()
+
+
+def cmd_network_status(args: argparse.Namespace) -> int:
+    """Состояние интернет-контура: квоты, трафик, источники."""
+    agent = _agent(args)
+    try:
+        hour_requests, day_bytes = agent.storage.fetch_quota_today()
+        sources = [dict(r) for r in agent.storage.get_sources()]
+        recent = [dict(r) for r in agent.storage.query(
+            "SELECT url, status, bytes, facts_extracted, trust, created_at "
+            "FROM fetch_log ORDER BY id DESC LIMIT 10")]
+        nc = agent.config.network
+        _print_json({
+            "enabled": nc.enabled,
+            "deny_by_default": nc.deny_by_default,
+            "allowed_domains": nc.allowed_domains,
+            "quota": {"requests_this_hour": hour_requests, "max_per_hour": nc.max_requests_per_hour,
+                      "bytes_today": day_bytes, "max_bytes_per_day": nc.max_total_bytes_per_day},
+            "web_search_attached": agent.web_search is not None,
+            "sources": sources,
+            "recent_fetches": recent,
+        })
+        return 0
+    finally:
+        agent.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="pfg.cli", description="PFG-Agent: компактный саморазвивающийся ИИ")
     p.add_argument("--config", help="путь к YAML-конфигурации", default=None)
@@ -297,6 +340,13 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--host", default="127.0.0.1", help="адрес (по умолчанию только localhost)")
     sp.add_argument("--port", type=int, default=8765)
     sp.set_defaults(func=cmd_web)
+
+    sp = sub.add_parser("search", help="мультиисточниковый поиск в интернете (белый список + карантин)")
+    sp.add_argument("query", help="что искать")
+    sp.set_defaults(func=cmd_search)
+
+    sub.add_parser("network-status", help="квоты, трафик и источники интернет-контура").set_defaults(
+        func=cmd_network_status)
     return p
 
 

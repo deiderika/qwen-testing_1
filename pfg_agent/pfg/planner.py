@@ -25,6 +25,7 @@ logger = logging.getLogger("pfg.planner")
 BASE_ACTIONS = [
     "remember", "recall", "search_memory", "read_file", "write_file",
     "list_files", "calculate", "run_skill", "create_skill", "ask_user", "wait",
+    "web_search",
 ]
 
 
@@ -123,7 +124,7 @@ def parse_goal(goal: str) -> dict[str, Any]:
         r"(какой|какая|какое|какие|когда|где|сколько|кто|почему|зачем|как часто|"
         r"что ты знаешь|вспомни|напомни|помнишь)",
         g,
-    ):
+    ) or re.search(r"\bкак\b", g):
         intent = "recall"
         args["query"] = goal.strip()
     elif re.search(r"(создай файл|запиши|сохрани файл|напиши в файл)", g):
@@ -207,6 +208,13 @@ class Planner:
         """Собирает план под распарсенную цель. state = {'intent':..., 'args':...}."""
         intent = state.get("intent", "chat")
         args = state.get("args", {})
+        # явная команда поиска в интернете: "найди/погугли/исследуй в интернете..."
+        raw = (state.get("raw") or "").lower()
+        if re.search(r"(в интернете|онлайн|погугли|запроси сеть|из сети)", raw) and \
+                re.search(r"(найди|найти|узнай|исследуй|посмотри|поищи|search)", raw):
+            intent = "web_search"
+            args = {"query": state.get("raw", "").strip()}
+            state = {**state, "intent": intent, "args": args}
         candidates = self._candidate_actions(intent)
         evaluated: list[PlanStep] = []
         for name in candidates[: self.pcfg.max_actions]:
@@ -245,6 +253,8 @@ class Planner:
             seq_names = ["remember"]
         elif intent == "recall":
             seq_names = ["search_memory", "recall"]
+        elif intent == "web_search":
+            seq_names = ["web_search"]
         elif intent == "read_file":
             seq_names = ["read_file"]
         elif intent == "list_files":
@@ -277,6 +287,7 @@ class Planner:
         primary = {
             "remember": ["remember", "search_memory", "wait"],
             "recall": ["search_memory", "recall", "ask_user", "wait"],
+            "web_search": ["web_search", "search_memory", "ask_user"],
             "write_file": ["write_file", "read_file", "remember", "ask_user"],
             "read_file": ["read_file", "list_files", "ask_user"],
             "list_files": ["list_files", "read_file"],

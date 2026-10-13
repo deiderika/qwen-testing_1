@@ -85,7 +85,28 @@ class PFGAgent:
         self.executor.skill_registry = self.skills
         self.reflection = ReflectionEngine(self.config, self.graph, self.memory)
         self.log = JsonlLogger(self.config.log_dir)
+        # интернет-контур (по умолчанию выключен; включается в конфиге осознанно)
+        self.ingest: Any = None
+        self.web_search: Any = None
+        try:
+            from pfg.fetcher import Fetcher
+            from pfg.ingest import IngestPipeline
+            from pfg.websearch import WebSearchEngine
+
+            fetcher = Fetcher(self.config, self.storage)
+            self.ingest = IngestPipeline(self.config, self.memory, self.storage, fetcher=fetcher,
+                                         safety_log=lambda rec: self.log.write("safety.jsonl", {
+                                             "level": "WARNING", "source": "ingest",
+                                             "message": rec.get("event", ""), "data": rec}))
+            if self.config.network.enabled and self.websearch_possible():
+                self.web_search = WebSearchEngine(self.config, self.ingest, fetcher)
+                self.executor.web_search = self.web_search
+        except Exception as exc:  # noqa: BLE001 — отсутствие контура не роняет агента
+            logger.warning("интернет-контур не инициализирован: %s", exc)
         logger.info("агент '%s' инициализирован: %s", self.config.name, self.graph.stats())
+
+    def websearch_possible(self) -> bool:
+        return bool(self.config.network.allowed_domains) or not self.config.network.deny_by_default
 
     # ---------- основной цикл ----------
     def run_task(self, goal: str) -> AgentResult:
@@ -172,7 +193,22 @@ class PFGAgent:
                 if isinstance(r.output, list) and r.output:
                     best = r.output[0]["text"]
                     return f"По моим данным: {best}", True, 0.85
+            # память пуста — если включён интернет-контур, пробуем найти сами
+            if self.web_search is not None:
+                rep = self.web_search.search_logged(parsed.get("args", {}).get("query", goal))
+                if rep.success and rep.answer:
+                    tag = "из интернета" + (", подтверждено несколькими источниками"
+                                            if rep.corroborated else "")
+                    return f"{rep.answer} ({tag})", True, round(rep.confidence, 2)
             return "Я не нашёл это в памяти.", False, 0.3
+        if intent == "web_search":
+            for r in ok_results:
+                out = r.output if isinstance(r.output, dict) else {}
+                if out.get("success") and out.get("answer"):
+                    src_n = len(out.get("sources", []))
+                    return f"{out['answer']} (источников: {src_n})", True, float(out.get("confidence", 0.6))
+            err = results[0].error if results and results[0].error else "источники не ответили"
+            return f"Веб-поиск не удался: {err}", False, 0.3
         if intent == "calculate":
             for r in ok_results:
                 if isinstance(r.output, dict) and "result" in r.output:

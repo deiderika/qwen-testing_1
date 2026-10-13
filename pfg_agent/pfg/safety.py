@@ -30,6 +30,7 @@ ACTION_RISK: dict[str, str] = {
     "calculate": "low",
     "wait": "low",
     "ask_user": "low",
+    "web_search": "medium",   # только белый список + квоты fetcher'а; данные идут в карантин
     "write_file": "medium",
     "run_skill": "medium",
     "create_skill": "medium",
@@ -181,6 +182,19 @@ class SafetyGuard:
             if not self.ecfg.allow_network:
                 return SafetyDecision(False, "high", "сеть отключена конфигурацией")
             return self._approval_gate(action, "network", risk)
+
+        # 4b. Веб-поиск: разрешён только если network включён И задан белый список.
+        # Это read-only контур (fetcher применяет квоты/лимиты), данные идут в карантин,
+        # поэтому не требует ручного подтверждения, как произвольный network_request.
+        if name == "web_search":
+            ncfg = self.config.network
+            if not ncfg.enabled:
+                return SafetyDecision(False, "medium",
+                                      "web_search отклонён: network.enabled=false (включите осознанно)")
+            if ncfg.deny_by_default and not ncfg.allowed_domains:
+                return SafetyDecision(False, "medium",
+                                      "web_search отклонён: пустой allowed_domains (deny by default)")
+            return SafetyDecision(True, risk, "ok (read-only белый список + квоты)")
 
         # 5. Финансы
         if name == "money_transfer":
