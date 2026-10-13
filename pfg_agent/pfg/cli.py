@@ -234,6 +234,13 @@ def cmd_ingest(args: argparse.Namespace) -> int:
         agent.close()
 
 
+def cmd_web(args: argparse.Namespace) -> int:
+    """Запуск веб-обёртки: чат с агентом в браузере."""
+    from pfg.web import run_web
+    config_path = args.config or "config/default.yaml"
+    return run_web(config_path, host=args.host, port=args.port)
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="pfg.cli", description="PFG-Agent: компактный саморазвивающийся ИИ")
     p.add_argument("--config", help="путь к YAML-конфигурации", default=None)
@@ -285,6 +292,11 @@ def build_parser() -> argparse.ArgumentParser:
     sp = sub.add_parser("ingest", help="загрузить внешний текст/файл в память через карантинный конвейер")
     sp.add_argument("path", help="путь к файлу (txt/html/json) или data/inbox/")
     sp.set_defaults(func=cmd_ingest)
+
+    sp = sub.add_parser("web", help="запустить веб-интерфейс (чат в браузере)")
+    sp.add_argument("--host", default="127.0.0.1", help="адрес (по умолчанию только localhost)")
+    sp.add_argument("--port", type=int, default=8765)
+    sp.set_defaults(func=cmd_web)
     return p
 
 

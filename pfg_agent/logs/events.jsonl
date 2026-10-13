@@ -45,3 +45,5 @@
 {"ts": "2026-10-13T12:14:18Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.7}}
 {"ts": "2026-10-13T12:14:56Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.85}}
 {"ts": "2026-10-13T12:15:52Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:35:49Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:35:54Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "удали все файлы из /etc", "success": true, "confidence": 0.7}}
