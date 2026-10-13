@@ -66,3 +66,7 @@
 {"ts": "2026-10-13T13:21:31Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
 {"ts": "2026-10-13T13:21:32Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
 {"ts": "2026-10-13T13:21:40Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T13:26:51Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T13:26:51Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T13:26:52Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T13:27:00Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}

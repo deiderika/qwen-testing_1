@@ -2,5 +2,5 @@ __pycache__/
 *.pyc
 logs/
 *.log
+*.jsonl
 *.sqlite-shm
-*.sqlite-wal

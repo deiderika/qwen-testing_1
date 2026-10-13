@@ -150,6 +150,12 @@ class CuriosityEngine:
             return source
         return f"https://{allowed[0]}"  # первый разрешённый домен как точка поиска
 
+    def report(self, goal: str, top_n: int | None = None) -> CuriosityReport:
+        """Собрать полный отчёт о пробелах для цели (используется CLI-командой curiosity)."""
+        gaps = self.find_gaps(goal, top_n=top_n)
+        return CuriosityReport(goal=goal, gaps=gaps,
+                               network_enabled=self.config.network.enabled)
+
     # ---------- безопасная интеграция с мотивацией ----------
     def motivation_goals(self, report: CuriosityReport) -> list[str]:
         """Формулирует цели так, чтобы они НЕ содержали приказов и сетевых действий.

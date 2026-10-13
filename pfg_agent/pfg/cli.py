@@ -284,6 +284,34 @@ def cmd_network_status(args: argparse.Namespace) -> int:
         agent.close()
 
 
+def cmd_curiosity(args: argparse.Namespace) -> int:
+    """Что агент хочет изучить: информационные пробелы, отсортированные по Priority."""
+    from pfg.curiosity import CuriosityEngine
+    agent = _agent(args)
+    try:
+        eng = CuriosityEngine(agent.config, agent.memory, graph=agent.graph,
+                              storage=agent.storage)
+        goal = args.goal or "понять мир вокруг и улучшить собственные навыки"
+        report = eng.report(goal)
+        payload = report.to_dict()
+        payload["motivation_goals"] = eng.motivation_goals(report)
+        _print_json(payload)
+        if not report.gaps:
+            print("\n>>> Информационных пробелов выше порога не найдено — агент «всё знает» "
+                  "в рамках текущей цели. Экономим ресурсы.")
+        else:
+            print(f"\n>>> Топ пробелов для цели: {goal!r}")
+            for i, g in enumerate(report.gaps, 1):
+                url = f" [кандидат: {g.suggested_url}]" if g.suggested_url else ""
+                print(f"  {i}. (priority={g.priority:.2f}) {g.topic}"
+                      f" | gap={g.gap:.2f} rel={g.relevance:.2f}{url}")
+            if not agent.config.network.enabled:
+                print("  (сеть выключена — пробелы будут переосмыслены локально через память/self-play)")
+        return 0
+    finally:
+        agent.close()
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="pfg.cli", description="PFG-Agent: компактный саморазвивающийся ИИ")
     p.add_argument("--config", help="путь к YAML-конфигурации", default=None)
@@ -347,6 +375,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("network-status", help="квоты, трафик и источники интернет-контура").set_defaults(
         func=cmd_network_status)
+
+    sp = sub.add_parser("curiosity", help="показать, что агент хочет изучить (информационные пробелы)")
+    sp.add_argument("goal", nargs="?", default=None,
+                    help="текущая цель для оценки релевантности (опционально)")
+    sp.set_defaults(func=cmd_curiosity)
     return p
 
 
