@@ -106,8 +106,17 @@ class WebSearchEngine:
                     self.wiki_langs.append(lang)
             elif "news" in dl or "rss" in dl or dl.endswith(("feed", ".rss")):
                 self.other_channels.append((f"rss:{dl}", f"https://{dl}/"))
+            elif dl == "api.duckduckgo.com":
+                self.other_channels.append(("ddg", ""))  # URL строится по запросу
+            elif dl == "api.github.com":
+                self.other_channels.append(("github", ""))
             else:
                 self.other_channels.append((f"site:{dl}", f"https://{dl}/"))
+
+    @staticmethod
+    def _is_cyrillic(text: str) -> bool:
+        """Есть ли в тексте кириллица (для выбора языка Википедии под запрос)."""
+        return bool(re.search(r"[а-яё]", text, re.IGNORECASE))
 
     @property
     def multi_source(self) -> bool:
@@ -183,27 +192,41 @@ class WebSearchEngine:
 
     # ---------- выбор URL ----------
     def _plan_urls(self, query: str) -> list[tuple[str, str]]:
-        """URL-кандидаты: сначала параллельно по разным каналам, затем запасные варианты."""
+        """URL-кандидаты: сначала параллельно по разным каналам, затем запасные варианты.
+
+        Язык Википедии подбирается под запрос (кириллица -> ru), заголовки статей
+        ищутся через search API — прямой title по словам вопроса почти всегда мимо.
+        """
         tokens = query_tokens(query)
-        title = "_".join(tokens[:4]) if tokens else query.strip()[:40]
-        qenc = urllib.parse.quote(title)
+        qenc = urllib.parse.quote(" ".join(tokens[:6]) or query.strip()[:40])
+        prefer_ru = self._is_cyrillic(query) and "ru" in self.wiki_langs
+        langs = sorted(self.wiki_langs, key=lambda l: 0 if (l == "ru") == prefer_ru else 1)
         round1: list[tuple[str, str]] = []
         round2: list[tuple[str, str]] = []
-        for lang in self.wiki_langs:
+        for lang in langs:
             api = f"https://{lang}.wikipedia.org/api.php"
-            rest = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{qenc}"
-            # основной вариант: extracts по прямому title с redirects
-            round1.append((f"wiki:{lang}",
-                           f"{api}?action=query&titles={qenc}&prop=extracts&exintro=1"
-                           f"&explaintext=1&format=json&redirects=1"))
-            # запасной: поиск статьи по запросу -> snippet
-            round2.append((f"wiki:{lang}",
-                           f"{api}?action=query&list=search&srsearch={urllib.parse.quote(' '.join(tokens[:6]))}"
-                           f"&format=json&srlimit=3&utf8=1&exintro=1"))
-            # запасной 2: REST summary
-            round2.append((f"wiki:{lang}", rest))
+            # канал wiki_<lang>: поиск статьи по запросу -> точный title + snippet
+            round1.append((f"wiki_{lang}",
+                           f"{api}?action=query&list=search&srsearch={qenc}"
+                           f"&format=json&srlimit=3&utf8=1"))
+            # канал wikisearch_<lang>: полные тексты найденных статей (exintro)
+            round1.append((f"wikisearch_{lang}",
+                           f"{api}?action=query&generator=search&gsrsearch={qenc}&gsrlimit=2"
+                           f"&prop=extracts&exintro=1&explaintext=1&format=json&redirects=1&utf8=1"))
+            # запасной: summary по «заголовку из слов»
+            title = "_".join(tokens[:4]) if tokens else query.strip()[:40]
+            rest = f"https://{lang}.wikipedia.org/api/rest_v1/page/summary/{urllib.parse.quote(title)}"
+            round2.append((f"wikirest_{lang}", rest))
         for kind, base in self.other_channels:
-            round1.append((kind, base))
+            if kind == "ddg":
+                q = urllib.parse.quote(" ".join(tokens[:5]) or query.strip()[:40])
+                round1.append(("ddg", f"https://api.duckduckgo.com/?q={q}&format=json&no_html=1"))
+            elif kind == "github":
+                q = urllib.parse.quote(" ".join(tokens[:4]) or query.strip()[:30])
+                round1.append(("github",
+                               f"https://api.github.com/search/repositories?q={q}&per_page=2"))
+            else:
+                round1.append((kind, base))
         return round1 + round2
 
     # ---------- fetch + извлечение ----------

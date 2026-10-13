@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -108,6 +109,66 @@ class PFGAgent:
     def websearch_possible(self) -> bool:
         return bool(self.config.network.allowed_domains) or not self.config.network.deny_by_default
 
+    # ---------- автономный интернет-поиск ----------
+    _QUESTION_HINTS = re.compile(
+        r"(когда|где|сколько|почему|что такое|кто такой|кто такая|какой|какая|какие|"
+        r"чем отличается|расскажи|назови|who |what |when |where |how much|why)", re.IGNORECASE)
+
+    def _should_auto_search(self, state: dict[str, Any], parsed: dict[str, Any],
+                            results: list[ActionResult]) -> bool:
+        """Эвристика «мне не хватает знаний»: вопрос + пустой/слабый результат поиска по памяти.
+
+        Срабатывает только если включён сетевой контур и есть веб-движок.
+        """
+        if self.web_search is None or not self.config.network.enabled:
+            return False
+        intent = parsed.get("intent", "chat")
+        if intent in ("remember", "write_file", "calculate", "gridworld"):
+            return False  # это не запрос знания
+        # уже явно искали в сети — не дублируем
+        if any(r.action == "web_search" for r in results):
+            return False
+        goal = parsed.get("raw") or ""
+        is_question = "?" in goal or bool(self._QUESTION_HINTS.search(goal))
+        if not is_question:
+            return False
+        # память пуста или найденное слабо релевантно вопросу
+        hits = self.memory.retrieve(goal, top_k=self.config.memory.retrieval_top_k)
+        if hits:
+            best_score = max(s for _, s in hits)
+            best_text = max(hits, key=lambda h: h[1])[0].text
+            # пересечение слов вопроса и факта — дешёвый прокси релевантности
+            q_words = set(re.findall(r"[а-яa-z]{4,}", goal.lower()))
+            f_words = set(re.findall(r"[а-яa-z]{4,}", best_text.lower()))
+            overlap = len(q_words & f_words) / max(1, len(q_words))
+            if best_score > 0.55 and overlap >= 0.3:
+                return False  # в памяти есть хороший ответ
+        return True
+
+    def _autonomous_web_search(self, query: str) -> dict[str, Any] | None:
+        """Агент сам решает сходить в сеть: safety-гейт → поиск → ActionResult для compose_answer."""
+        action = Action(name="web_search", args={"query": query}, purpose="автономный поиск знания")
+        decision = self.safety.check(action)
+        self.log.write("actions.jsonl", {
+            "level": "INFO", "source": "agent.autosearch", "message": "intrinsic web search",
+            "data": {"query": query[:200], "allowed": decision.allowed, "risk": decision.risk},
+        })
+        if not decision.allowed:
+            return None
+        try:
+            rep = self.web_search.search(query)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("автономный поиск упал: %s", exc)
+            return None
+        out = {
+            "success": rep.success, "answer": rep.answer,
+            "sources": rep.sources, "confidence": rep.confidence,
+            "corroborated": rep.corroborated, "auto": True,
+        }
+        result = ActionResult(action="web_search", success=rep.success,
+                              output=out, error=None if rep.success else "источники не ответили")
+        return {"decision": decision, "result": result, "report": rep}
+
     # ---------- основной цикл ----------
     def run_task(self, goal: str) -> AgentResult:
         state = self.encode_goal(goal)
@@ -115,8 +176,17 @@ class PFGAgent:
         plan = self.planner.make_plan(parsed)
         safe_actions, decisions = self.safety.check_plan([s.action for s in plan.steps])
         results = self.executor.execute(safe_actions)
+        # автономный fallback: если в памяти ничего не найдено и это вопрос — агент сам идёт в интернет
+        web_report = None
+        if self._should_auto_search(state, parsed, results):
+            query = (parsed.get("args", {}).get("query") or goal).strip()
+            web_report = self._autonomous_web_search(query)
+            if web_report is not None:
+                decisions.append(web_report["decision"])
+                results.append(web_report["result"])
         observation = self.observe(results)
-        answer, success, confidence = self.compose_answer(parsed, results, observation)
+        answer, success, confidence = self.compose_answer(parsed, results, observation,
+                                                          web_report=web_report)
 
         ep = Episode(id=f"ep_{new_id()}", goal=goal,
                      context=[f.id for f, _ in self.memory.retrieve(goal, top_k=5)],
@@ -179,11 +249,22 @@ class PFGAgent:
         return obs[:2000]
 
     def compose_answer(self, parsed: dict[str, Any], results: list[ActionResult],
-                       observation: str) -> tuple[str, bool, float]:
+                       observation: str, *, web_report: dict[str, Any] | None = None,
+                       ) -> tuple[str, bool, float]:
         intent = parsed.get("intent", "chat")
         ok_results = [r for r in results if r.success]
         failed = [r for r in results if not r.success]
         success = bool(results) and not failed
+
+        # авто-ответ из интернета имеет приоритет над слабым ответом из памяти
+        if web_report is not None:
+            out = web_report["result"].output or {}
+            if out.get("success") and out.get("answer"):
+                src_n = len(out.get("sources", []))
+                tag = "сам нашёл в интернете" + (", подтверждено несколькими источниками"
+                                                 if out.get("corroborated") else "")
+                return f"{out['answer']} ({tag}, источников: {src_n})", True, \
+                    round(float(out.get("confidence", 0.6)) + 0.05, 2)
 
         if intent == "remember" and ok_results:
             out = ok_results[0].output or {}
@@ -194,12 +275,17 @@ class PFGAgent:
                     best = r.output[0]["text"]
                     return f"По моим данным: {best}", True, 0.85
             # память пуста — если включён интернет-контур, пробуем найти сами
-            if self.web_search is not None:
-                rep = self.web_search.search_logged(parsed.get("args", {}).get("query", goal))
-                if rep.success and rep.answer:
-                    tag = "из интернета" + (", подтверждено несколькими источниками"
-                                            if rep.corroborated else "")
-                    return f"{rep.answer} ({tag})", True, round(rep.confidence, 2)
+            if self.web_search is not None and self.config.network.enabled:
+                query = parsed.get("args", {}).get("query") or parsed.get("raw", "")
+                rep = self._autonomous_web_search(query.strip())
+                if rep is not None:
+                    out = rep["result"].output or {}
+                    if out.get("success") and out.get("answer"):
+                        src_n = len(out.get("sources", []))
+                        tag = "сам нашёл в интернете" + (", подтверждено несколькими источниками"
+                                                         if out.get("corroborated") else "")
+                        return f"{out['answer']} ({tag}, источников: {src_n})", True, \
+                            round(float(out.get("confidence", 0.6)) + 0.05, 2)
             return "Я не нашёл это в памяти.", False, 0.3
         if intent == "web_search":
             for r in ok_results:
