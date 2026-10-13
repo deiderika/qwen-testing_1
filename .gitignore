@@ -1,7 +1,6 @@
-__pycache__/
-*.pyc
-logs/
+pfg_agent/logs/
 *.log
-*.jsonl
 *.sqlite-shm
 *.sqlite-wal
+__pycache__/
+*.pyc

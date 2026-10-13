@@ -389,7 +389,9 @@ def _poly_expr(coeffs: np.ndarray) -> str:
             continue
         term = f"{c:.4f}"
         if p >= 1:
-            term += "*x" if p == 1 else f"*x^{p}"
+            # Python-совместимое возведение в степень (**), а не математическая нотация (^),
+            # иначе eval() трактует ^ как XOR и падает.
+            term += "*x" if p == 1 else f"*x**{p}"
         parts.append(term)
     return " + ".join(parts).replace("+ -", "- ") if parts else "0"
 
@@ -399,9 +401,12 @@ _SAFE_MATH = {"tanh": np.tanh, "sin": np.sin, "cos": np.cos, "exp": np.exp, "abs
 
 def _eval_symbolic(expr: str, x: float) -> float:
     """Безопасное вычисление зафиксированного символического выражения (только числа и x)."""
+    # Обратная совместимость: старые сохранённые формулы могли содержать математическую
+    # нотацию '^' (например "0.5*x^2"). Для eval это XOR, поэтому транслируем в '**'.
+    safe_expr = expr.replace("^", "**")
     env = {"x": x, "__builtins__": {}, **_SAFE_MATH}
     try:
-        return float(eval(expr, env, {"x": x}))  # noqa: S307 — expr создаётся самим агентом из whitelist-формул
+        return float(eval(safe_expr, env, {"x": x}))  # noqa: S307 — expr создаётся самим агентом из whitelist-формул
     except Exception:  # noqa: BLE001
         logger.warning("не удалось вычислить symbolic_expr %r", expr)
         return float(x)
