@@ -1,6 +1,6 @@
-pfg_agent/logs/
+__pycache__/
+*.pyc
+logs/
 *.log
 *.sqlite-shm
 *.sqlite-wal
-__pycache__/
-*.pyc

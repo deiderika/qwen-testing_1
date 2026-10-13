@@ -325,6 +325,10 @@ class PlasticFunctionGraph:
             m = json.loads(meta or "{}")
             base = {"input_bias": float(m.get("input_bias", 0.0)), "gate_bias": float(m.get("gate_bias", 0.0))}
             extra = {k: v for k, v in m.items() if k not in ("input_bias", "gate_bias")}
+            # Нормализация legacy-формул: старые записи могли содержать математическую
+            # нотацию '^' (XOR для eval). Приводим к Python-синтаксису '**' при загрузке.
+            if isinstance(sym, str) and "^" in sym and "**" not in sym:
+                sym = sym.replace("^", "**")
             edge = Edge.from_params_blob(params, {
                 "id": eid, "src_node_id": src, "dst_node_id": dst, **base,
                 "salience": float(salience or 0.5), "usage_count": int(usage or 0),
