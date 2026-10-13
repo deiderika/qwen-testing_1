@@ -1,0 +1,47 @@
+{"ts": "2026-10-13T11:39:47Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:39:47Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T11:39:47Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:39:48Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:39:49Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:39:49Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T11:39:50Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:39:50Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:01Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:02Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T11:40:02Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:03Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:04Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:04Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T11:40:04Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:05Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:10Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:10Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T11:40:11Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:40:11Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:44:24Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что у нас Raspberry Pi 4 4GB", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:44:26Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Какой у нас компьютер?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T11:44:31Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/from_queue.txt с текстом queued-ok", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T11:44:43Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что демон запущен 13 октября", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T11:44:52Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Когда был запущен демон?", "success": true, "confidence": 0.7}}
+{"ts": "2026-10-13T11:44:55Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Демон запущен?", "success": true, "confidence": 0.7}}
+{"ts": "2026-10-13T12:04:55Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня день?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:04:57Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня день?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:06:15Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня день?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:06:29Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T12:06:30Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T12:06:30Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T12:06:39Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T12:07:06Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T12:07:06Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Создай файл sandbox/queued.txt с текстом hi", "success": true, "confidence": 0.8}}
+{"ts": "2026-10-13T12:07:07Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что 2+2 это проверка сна", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T12:07:16Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "Запомни, что любимый цвет синий", "success": true, "confidence": 0.9}}
+{"ts": "2026-10-13T12:07:32Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня день?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:07:36Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня день?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:09:20Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня праздник в россии?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:09:23Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня праздник в россии?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:10:39Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "какой сегодня праздник в россии?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:10:44Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "13 октября какой праздник в россии", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:14:15Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.7}}
+{"ts": "2026-10-13T12:14:18Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.7}}
+{"ts": "2026-10-13T12:14:56Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.85}}
+{"ts": "2026-10-13T12:15:52Z", "level": "INFO", "source": "agent", "message": "task finished", "data": {"goal": "когда празднуется день россии?", "success": true, "confidence": 0.85}}

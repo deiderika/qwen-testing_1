@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+logs/
+pfg_agent/logs/
+*.log
+*.sqlite
+pfg_agent/data/pfg.sqlite

@@ -1,0 +1,11 @@
+[
+  {
+    "id": "task_4bfb4d03840b",
+    "type": "generic",
+    "payload": "Создай файл sandbox/from_queue.txt с текстом queued-ok",
+    "priority": "high",
+    "added_at": "2026-10-13T11:40:15Z",
+    "status": "done",
+    "finished_at": "2026-10-13T11:44:31Z"
+  }
+]
