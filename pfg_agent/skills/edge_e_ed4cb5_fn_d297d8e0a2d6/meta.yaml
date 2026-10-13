@@ -1,0 +1,21 @@
+id: edge_e_ed4cb5_fn_d297d8e0a2d6
+name: edge_e_ed4cb5_fn
+description: Компиляция ребра e_ed4cb57c247e
+created_at: '2026-10-13T12:06:07Z'
+active: true
+inputs:
+- name: x
+  type: float
+outputs:
+- name: result
+  type: float
+metrics:
+  error_after: 0.010797
+  latency_before_ms: 0.015270399999280926
+  latency_after_ms: 203.944
+  coeffs:
+  - -0.13889634022345765
+  - 0.018916339817359615
+  - 0.24713856509283574
+  - 1.0055438047881247
+  - -0.11356040591029286

@@ -1,0 +1,21 @@
+id: edge_e_178c90_fn_c7c7ef0eae8c
+name: edge_e_178c90_fn
+description: Компиляция ребра e_178c9069e64b
+created_at: '2026-10-13T12:54:07Z'
+active: true
+inputs:
+- name: x
+  type: float
+outputs:
+- name: result
+  type: float
+metrics:
+  error_after: 0.019327
+  latency_before_ms: 0.015700220010330668
+  latency_after_ms: 205.545
+  coeffs:
+  - -0.251905997120512
+  - -0.18207965362474118
+  - 0.12328622695756919
+  - 1.0297203539790003
+  - 0.12478087311427649
