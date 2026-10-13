@@ -97,6 +97,13 @@ network:
   allowed_domains:
     - ru.wikipedia.org
     - en.wikipedia.org
+    # Поисковые системы (для «найди в интернете»): раскомментируйте нужные.
+    - www.google.com        # Google
+    - yandex.ru             # Яндекс
+    - duckduckgo.com        # DuckDuckGo (наиболее лоялен к ботам)
+    - search.brave.com      # Brave Search
+  # Какие движки использовать; пусто = все из белого списка выше.
+  search_engines: []
   max_bytes_per_request: 60000
   max_total_bytes_per_day: 5000000
   max_requests_per_hour: 30

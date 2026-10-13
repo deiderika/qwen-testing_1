@@ -264,8 +264,10 @@ def cmd_network_status(args: argparse.Namespace) -> int:
     agent = _agent(args)
     try:
         hour_requests, day_bytes = agent.storage.fetch_quota_today()
-        sources = [dict(r) for r in agent.storage.get_sources()]
-        recent = [dict(r) for r in agent.storage.query(
+        src_cols = ("id", "domain", "reputation", "total_facts", "conflicts", "last_used_at")
+        sources = [dict(zip(src_cols, r)) for r in agent.storage.get_sources()]
+        recent_cols = ("url", "status", "bytes", "facts_extracted", "trust", "created_at")
+        recent = [dict(zip(recent_cols, r)) for r in agent.storage.query(
             "SELECT url, status, bytes, facts_extracted, trust, created_at "
             "FROM fetch_log ORDER BY id DESC LIMIT 10")]
         nc = agent.config.network
@@ -275,6 +277,8 @@ def cmd_network_status(args: argparse.Namespace) -> int:
             "allowed_domains": nc.allowed_domains,
             "quota": {"requests_this_hour": hour_requests, "max_per_hour": nc.max_requests_per_hour,
                       "bytes_today": day_bytes, "max_bytes_per_day": nc.max_total_bytes_per_day},
+            "search_engines_enabled": (agent.web_search.available_engines()
+                                        if agent.web_search else []),
             "web_search_attached": agent.web_search is not None,
             "sources": sources,
             "recent_fetches": recent,

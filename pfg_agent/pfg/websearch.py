@@ -15,6 +15,7 @@
 """
 from __future__ import annotations
 
+import html
 import json
 import logging
 import re
@@ -30,6 +31,45 @@ from pfg.math_basis import cosine_similarity
 from pfg.utils import utc_iso
 
 logger = logging.getLogger("pfg.websearch")
+
+# ---------- Поисковые системы (SERP) ----------
+# Каждая система — это (имя, домен выдачи, шаблон URL запроса, регулярка для
+# извлечения заголовков+сниппетов из HTML). Домены ОБЯЗАТЕЛЬНО должны быть в
+# network.allowed_domains, иначе fetcher их заблокирует (deny by default).
+SEARCH_ENGINES: dict[str, dict[str, str]] = {
+    "google": {
+        "domain": "www.google.com",
+        "url": "https://www.google.com/search?q={q}&num=8&hl=ru&nfpr=1",
+        # google: <h3 class="...">ЗАГОЛОВОК</h3>, сниппеты в div с data-sncf / span
+        "title_re": r"<h3[^>]*>(.*?)</h3>",
+        "snippet_re": r'<span[^>]*>([^<]{40,300})</span>',
+    },
+    "yandex": {
+        "domain": "yandex.ru",
+        "url": "https://yandex.ru/search/?text={q}&lr=213",
+        "title_re": r'<a[^>]*organic-[a-z-]*web-result[^>]*>.*?<h2[^>]*>(.*?)</h2>',
+        "snippet_re": r'<(?:div|span)[^>]*organic__content-wrapper[^>]*>(.*?)</(?:div|span)>',
+    },
+    "duckduckgo": {
+        "domain": "duckduckgo.com",
+        "url": "https://duckduckgo.com/html/?q={q}",
+        "title_re": r'<a[^>]*class="result__a"[^>]*>(.*?)</a>',
+        "snippet_re": r'<a[^>]*class="result__snippet"[^>]*>(.*?)</a>',
+    },
+    "brave": {
+        "domain": "search.brave.com",
+        "url": "https://search.brave.com/search?q={q}",
+        "title_re": r'<div[^>]*snippet-title[^>]*>(.*?)</div>',
+        "snippet_re": r'<div[^>]*snippet-content[^>]*>(.*?)</div>',
+    },
+}
+
+
+def _strip_tags(s: str) -> str:
+    s = re.sub(r"<script.*?</script>|<style.*?</style>", " ", s, flags=re.S | re.I)
+    s = re.sub(r"<[^>]+>", " ", s)
+    return html.unescape(re.sub(r"\s+", " ", s)).strip()
+
 
 STOPWORDS = {
     "какой", "какая", "какое", "какие", "когда", "где", "кто", "что", "почему",
@@ -98,8 +138,16 @@ class WebSearchEngine:
         # каналы строятся ТОЛЬКО из белого списка доменов
         self.wiki_langs: list[str] = []
         self.other_channels: list[tuple[str, str]] = []
+        self.serp_engines: list[str] = []
         for d in self.ncfg.allowed_domains:
             dl = d.lower().strip()
+            eng = next((name for name, spec in SEARCH_ENGINES.items() if dl == spec["domain"]), None)
+            if eng is not None:
+                # разрешённый домен поисковика -> добавляем движок (если не отфильтрован)
+                sel = [e.strip().lower() for e in self.ncfg.search_engines if e.strip()]
+                if not sel or eng in sel:
+                    self.serp_engines.append(eng)
+                continue
             if dl.endswith("wikipedia.org"):
                 lang = "ru" if dl.startswith("ru.") else "en"
                 if lang not in self.wiki_langs:
@@ -121,7 +169,16 @@ class WebSearchEngine:
     @property
     def multi_source(self) -> bool:
         """Можно ли искать сразу в нескольких независимых источниках."""
-        return len(self.wiki_langs) + len(self.other_channels) >= 2
+        return len(self.wiki_langs) + len(self.other_channels) + len(self.serp_engines) >= 2
+
+    def available_engines(self) -> list[str]:
+        """Список активных поисковых движков (для network-status)."""
+        out = list(self.serp_engines)
+        for l in self.wiki_langs:
+            out.append(f"wikipedia:{l}")
+        for kind, _b in self.other_channels:
+            out.append(kind)
+        return out
 
     # ---------- публичный API ----------
     def search(self, query: str, max_sources: int = 3) -> WebSearchReport:
@@ -203,6 +260,11 @@ class WebSearchEngine:
         langs = sorted(self.wiki_langs, key=lambda l: 0 if (l == "ru") == prefer_ru else 1)
         round1: list[tuple[str, str]] = []
         round2: list[tuple[str, str]] = []
+        # --- поисковые системы (Google / Яндекс / DDG / Brave): широкая выдача ---
+        full_q = urllib.parse.quote(query.strip()[:80] or " ".join(tokens[:6]))
+        for eng in self.serp_engines:
+            spec = SEARCH_ENGINES[eng]
+            round1.append((f"serp:{eng}", spec["url"].format(q=full_q)))
         for lang in langs:
             api = f"https://{lang}.wikipedia.org/api.php"
             # канал wiki_<lang>: поиск статьи по запросу -> точный title + snippet
@@ -236,7 +298,10 @@ class WebSearchEngine:
             return SourceResult(kind, self._domain(url), False, reason=res.reason or res.status,
                                 bytes_in=res.bytes)
         try:
-            sentences = self._extract_sentences(res.text, url)
+            if kind.startswith("serp:"):
+                sentences = self._extract_serp(res.text, kind.split(":", 1)[1])
+            else:
+                sentences = self._extract_sentences(res.text, url)
         except Exception as exc:  # noqa: BLE001
             return SourceResult(kind, self._domain(url), False, reason=f"parse error: {type(exc).__name__}",
                                 bytes_in=res.bytes)
@@ -244,11 +309,42 @@ class WebSearchEngine:
                                             (self._domain(url),))
         reputation = float(rep_row[0][0]) if rep_row else 0.4
         trust = max(0.2, min(0.8, reputation))
+        # поисковики дают только сниппеты — доверие к SERP чуть ниже, чем к первоисточнику
+        if kind.startswith("serp:"):
+            trust = min(trust, 0.55)
         if not sentences:
             return SourceResult(kind, self._domain(url), False, reason="факты не извлечены",
                                 bytes_in=res.bytes)
         return SourceResult(kind, self._domain(url), True, facts=sentences, trust=trust,
                             bytes_in=res.bytes)
+
+    def _extract_serp(self, raw: str, engine: str) -> list[str]:
+        """HTML поисковой выдачи -> список фактов «заголовок — сниппет».
+
+        Устойчив к разным разметкам: сначала пробуем точные шаблоны движка,
+        затем универсальный fallback (h3/h2 + следующий текстовый блок).
+        """
+        facts: list[str] = []
+        spec = SEARCH_ENGINES.get(engine, {})
+        if spec:
+            titles = [_strip_tags(t) for t in re.findall(spec["title_re"], raw, flags=re.S)]
+            snips = [_strip_tags(s) for s in re.findall(spec["snippet_re"], raw, flags=re.S)]
+            titles = [t for t in titles if 8 <= len(t) <= 200]
+            snips = [s for s in snips if 40 <= len(s) <= 400]
+            for i, t in enumerate(titles[:6]):
+                s = snips[i] if i < len(snips) else ""
+                facts.append(f"{t}: {s}" if s else t)
+        if not facts:  # fallback: любые заголовки h3/h2 с текстом рядом
+            blocks = re.findall(r"<(?:h3|h2)[^>]*>(.*?)</(?:h3|h2)>", raw, flags=re.S)
+            for b in blocks:
+                t = _strip_tags(b)
+                if 15 <= len(t) <= 250 and not t.lower().startswith(("cookie", "sign in")):
+                    facts.append(t)
+                if len(facts) >= 6:
+                    break
+        # фильтр мусора SERP-страниц
+        junk = ("сообщить о нарушении", "personalized search", "consent", "javascript")
+        return [f for f in facts if not any(j in f.lower() for j in junk)]
 
     def _extract_sentences(self, raw: str, url: str) -> list[str]:
         """Текст источника -> короткие факт-предложения (макс. 8)."""

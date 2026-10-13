@@ -110,6 +110,9 @@ class NetworkConfig:
     cache_min_age_s: int = 900          # не качать один URL чаще, чем раз в 15 минут
     max_facts_per_ingest: int = 15
     min_facts_per_ingest: int = 1
+    # Поисковые системы для запроса «найди в интернете». Пусто = все известные.
+    # Значения: google, yandex, duckduckgo, brave, wikipedia (последняя — через API).
+    search_engines: list[str] = field(default_factory=list)
 
 
 @dataclass
